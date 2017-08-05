@@ -146,6 +146,52 @@ namespace PT.PM.UstPreprocessing
             return result;
         }
 
+        public override UstNode Visit(MultichildExpression multichildExpression)
+        {
+            UstNode result;
+            if (IsCharArray(multichildExpression.Expressions))
+            {
+                var stringExprs = multichildExpression.Expressions.Where(expr => expr.NodeType == NodeType.StringLiteral);
+                String value = String.Concat(stringExprs.OfType<StringLiteral>().Select(expr => expr.Text));
+                result = new StringLiteral(value, multichildExpression.TextSpan, multichildExpression.FileNode);
+            }
+            else
+            {
+                result = VisitChildren(multichildExpression);
+            }
+            return result;
+        }
+
+        private bool IsCharArray(List<Expression> expressions)
+        {
+            if (!tryCheckIdTokenValue(expressions.First(), "{") || !tryCheckIdTokenValue(expressions.Last(), "}"))
+            {
+                return false;
+            }
+
+            for (int i = 1; i < expressions.Count - 1; i++)
+            {
+                if (i % 2 == 0 && !tryCheckIdTokenValue(expressions[i], ","))
+                {
+                    return false;
+                }
+                if (i % 2 == 1 && expressions[i].NodeType != NodeType.StringLiteral)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private bool tryCheckIdTokenValue(Expression expr, String value)
+        {
+            if (expr == null || expr.NodeType != NodeType.IdToken)
+            {
+                return false;
+            }
+            return ((IdToken)expr).TextValue == value;
+        }
+
         public override UstNode Visit(UnaryOperatorExpression unaryOperatorExpression)
         {
             UstNode result;
@@ -165,7 +211,7 @@ namespace PT.PM.UstPreprocessing
                 };
                 Logger.LogDebug($"Unary expression {unaryOperatorExpression} has been folded to {-intValue} at {result.TextSpan}");
             }
-            else if(isOperatorMinus && isExpressionFloat)
+            else if (isOperatorMinus && isExpressionFloat)
             {
                 double doubleValue = ((FloatLiteral)ex).Value;
                 result = new FloatLiteral
@@ -244,7 +290,7 @@ namespace PT.PM.UstPreprocessing
             int index = 0;
             while (index < collection.Count)
             {
-                if (collection[index].NodeType ==  NodeType.PatternMultipleStatements &&
+                if (collection[index].NodeType == NodeType.PatternMultipleStatements &&
                     index + 1 < collection.Count &&
                     collection[index + 1].NodeType == NodeType.PatternMultipleStatements)
                 {

@@ -459,7 +459,7 @@ namespace PT.PM.JavaParseTreeUst.Converter
             ITerminalNode charLiteral = context.CHAR_LITERAL();
             if (charLiteral != null)
             {
-                return new StringLiteral(charLiteral.GetText(), textSpan, FileNode);
+                return new StringLiteral(charLiteral.GetText().Substring(1, 1), true, textSpan, FileNode);
             }
 
             ITerminalNode floatLiteral = context.FLOAT_LITERAL();
